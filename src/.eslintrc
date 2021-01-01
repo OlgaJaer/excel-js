@@ -8,7 +8,9 @@
     "rules": {
         "semi": "off",
         "require-jsdoc": "off",
-        "object-curly-spacing": ["error", "always"]
+        "object-curly-spacing": ["error", "always"],
+        "operator-linebreak": ["error", "after", { "overrides": { "?": "ignore", ":": "ignore" } }],
+        "skipBlankLines": "off"
     },
     "extends": ["eslint:recommended", "google"]
 
