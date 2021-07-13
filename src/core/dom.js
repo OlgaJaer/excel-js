@@ -1,3 +1,4 @@
+// утилита для взаимодействия с DOM
 class Dom {
   constructor(selector) {
     this.$el =
@@ -15,6 +16,14 @@ class Dom {
   clear() {
     this.html('')
     return this
+  }
+
+  on(eventType, cb) {
+    this.$el.addEventListener(eventType, cb)
+  }
+
+  off(eventType, cb) {
+    this.$el.removeEventListener(eventType, cb)
   }
 
   append(node) {

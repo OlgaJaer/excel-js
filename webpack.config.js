@@ -1,13 +1,9 @@
 const path = require('path')
-const { CleanWebpackPlugin } = require('clean-webpack-plugin')
 const HtmlWebpackPlugin = require('html-webpack-plugin')
+// try favicon-webpack-plagin
 const CopyPlugin = require('copy-webpack-plugin')
 const MiniCssExtractPlugin = require('mini-css-extract-plugin')
-
-const isProd = process.env.NODE_ENV === 'production'
-const isDev = !isProd
-
-const filename = (ext) => (isDev ? `bundle.${ext}` : `bundle.[hash].${ext}`)
+const ESLintPlugin = require('eslint-webpack-plugin')
 
 const jsLoaders = () => {
   const loaders = [
@@ -20,75 +16,89 @@ const jsLoaders = () => {
     },
   ]
 
-  if (isDev) {
-    loaders.push('eslint-loader')
-  }
-
   return loaders
 }
 
-module.exports = {
-  context: path.resolve(__dirname, 'src'),
-  mode: 'development',
-  entry: ['@babel/polyfill', './index.js'],
-  output: {
-    filename: filename('js'),
-    path: path.resolve(__dirname, 'dist'),
-  },
-  resolve: {
-    extensions: ['.js'],
-    alias: {
-      '@': path.resolve(__dirname, 'src'),
-      '@core': path.resolve(__dirname, 'src/core'),
+module.exports = (env, argv) => {
+  const isProd = argv.mode === 'production'
+  const isDev = !isProd
+
+  const filename = (ext) => (isDev
+    ? `[name].bundle.${ext}`
+    : `[name].bundle.[hash].${ext}`)
+
+  const plugins = () => {
+    const base = [
+      new HtmlWebpackPlugin({
+        template: 'index.html',
+        minify: {
+          collapseWhitespace: isProd,
+          removeComments: isProd,
+        },
+      }),
+      new CopyPlugin({
+        patterns: [
+          {
+            from: path.resolve(__dirname, 'src/favicon.ico'),
+            to: path.resolve(__dirname, 'dist'),
+          },
+        ],
+      }),
+      new MiniCssExtractPlugin({
+        filename: filename('css'),
+        // filename: '[name].bundle.css'
+      }),
+    ]
+
+    if (isDev) {
+      base.push(new ESLintPlugin())
+    }
+
+    return base
+  }
+
+  return {
+    target: 'web',
+    context: path.resolve(__dirname, 'src'),
+    entry: './index.js',
+    output: {
+      filename: filename('js'),
+      path: path.resolve(__dirname, 'dist'),
+      clean: true,
     },
-  },
-  devtool: isDev ? 'source-map' : false,
-  devServer: {
-    port: 3000,
-    hot: isDev,
-  },
-  plugins: [
-    new CleanWebpackPlugin(),
-    new HtmlWebpackPlugin({
-      template: 'index.html',
-      minify: {
-        collapseWhitespace: isProd,
-        removeComments: isProd,
+    resolve: {
+      extensions: ['.js'],
+      alias: {
+        '@': path.resolve(__dirname, 'src'),
+        '@core': path.resolve(__dirname, 'src', 'core'),
       },
-    }),
-    new CopyPlugin({
-      patterns: [
+    },
+    devtool: isDev ? 'source-map' : false,
+    devServer: {
+      port: 3000,
+      // open: true,
+      hot: isDev,
+      // watchContentBase: true
+    },
+    plugins: plugins(),
+    module: {
+      rules: [
         {
-          from: path.resolve(__dirname, 'src/favicon.ico'),
-          to: path.resolve(__dirname, 'dist'),
+          test: /\.s[ac]ss$/i,
+          use: [
+            {
+              loader: MiniCssExtractPlugin.loader,
+            },
+            'css-loader',
+            'sass-loader',
+          ],
+        },
+        {
+          test: /\.js$/,
+          exclude: /node_modules/,
+          use: jsLoaders,
         },
       ],
-    }),
-    new MiniCssExtractPlugin({
-      filename: filename('css'),
-    }),
-  ],
-  module: {
-    rules: [
-      {
-        test: /\.s[ac]ss$/i,
-        use: [
-          {
-            loader: MiniCssExtractPlugin.loader,
-            options: {
-              hmr: isDev,
-              reloadAll: true,
-            },
-          },
-          'css-loader',
-          'sass-loader',
-        ],
-      },
-      {
-        test: /\.js$/,
-        exclude: /node_modules/,
-        use: jsLoaders,
-      },
-    ],
-  },
+    },
+  }
 }
